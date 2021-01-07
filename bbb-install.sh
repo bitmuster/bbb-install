@@ -776,14 +776,45 @@ HERE
   fi
 }
 
+install_linux_image_extra() {
+    PATTERN=$(uname -r)
+    #PATTERN="4.4.0-142-generic" # Example, works for me
+    NUM=$(apt-cache search linux-image-extra-$PATTERN | wc -l)
+    if (( $NUM == 0 ));then
+      # Will happen on a machine where uname -r returns 4.4.0-198-generic
+      echo "**** ERROR: ****"
+      echo "This script failed to select a kernel image"
+      echo "Please update the search PATTERN."
+      echo "**** ERROR: ****"
+      echo "See also https://github.com/bigbluebutton/bbb-install/issues/218"
+      err "Exiting due to error"
+
+    elif (( $NUM > 10 ));then
+      # Might happen on a machine wher euname -r returns 4.4.0
+      # Will fail if pattern matches more than 10 images
+      echo "**** ERROR: ****"
+      echo "This script might install $NUM kernel packages!"
+      echo "Select one of them and update the search PATTERN."
+
+      apt-cache search linux-image-extra-$PATTERN
+
+      echo "Select one of them and update the search PATTERN."
+      echo "**** ERROR: ****"
+      echo "See also https://github.com/bigbluebutton/bbb-install/issues/218"
+      err "Exiting due to error"
+
+    else
+      apt-get install -y \
+        linux-image-extra-$PATTERN \
+        linux-image-extra-virtual
+    fi
+}
 
 install_docker() {
   need_pkg software-properties-common openssl
 
   if ! dpkg -l | grep -q linux-image-extra-virtual; then
-    apt-get install -y \
-      linux-image-extra-$(uname -r) \
-      linux-image-extra-virtual
+    install_linux_image_extra;
   fi
 
   # Install Docker
